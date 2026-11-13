@@ -101,3 +101,56 @@ async function getFirebaseIdTokenV2() {
 
   return await user.getIdToken();
 }
+
+
+const TBS_API_URL =
+  "https://tbs-mobile-api.nguyencongduc1990.workers.dev";
+
+async function verifyLoginWithBackendV2() {
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error("NOT_AUTHENTICATED");
+  }
+
+  const token = await getFirebaseIdTokenV2();
+
+  const response = await fetch(
+    `${TBS_API_URL}/auth/verify`,
+    {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    }
+  );
+
+  const result = await response.json();
+
+  if (!response.ok || !result.authenticated) {
+    throw new Error(
+      result.error || "AUTH_VERIFICATION_FAILED"
+    );
+  }
+
+  return result;
+}
+
+// Chỉ dùng để kiểm tra trong giai đoạn triển khai.
+// Không lưu hoặc hiển thị ID Token.
+window.testTbsAuthenticationV2 = async function () {
+  try {
+    const result = await verifyLoginWithBackendV2();
+
+    console.log("FIREBASE VERIFICATION:", {
+      authenticated: result.authenticated,
+      authorized: result.authorized,
+      message: result.message
+    });
+
+    return result;
+  } catch (error) {
+    console.error("VERIFICATION FAILED:", error.message);
+    return { success: false, error: error.message };
+  }
+};
