@@ -86,3 +86,18 @@ onAuthStateChanged(auth, user => {
   status.textContent =
     "Lỗi khởi tạo xác thực: " + error.code;
 });
+
+
+/**
+ * Lay Firebase ID Token cua tai khoan da dang nhap.
+ * Token se duoc Backend xac minh truoc khi cap quyen.
+ */
+async function getFirebaseIdTokenV2() {
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error("NOT_AUTHENTICATED");
+  }
+
+  return await user.getIdToken();
+}
