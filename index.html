@@ -310,6 +310,16 @@
     body.locked dialog {
       display: none !important;
     }
+    
+    /* V2.7.3 - Authentication UI */
+    
+    body:not(.locked) #authScreen {
+      display: none;
+    }
+    
+    body.locked #authScreen {
+      display: block;
+    }
 
     @media (max-width: 480px) {
       .auth-card {
@@ -382,10 +392,14 @@
         <span id="userUid"></span>
       </p>
 
+
       <p>
         Trạng thái:
-        <strong>Chờ kiểm tra quyền Admin</strong>
+        <strong id="userRoleStatus">
+          Đang kiểm tra quyền...
+        </strong>
       </p>
+
 
       <button
         id="logoutGoogle"
