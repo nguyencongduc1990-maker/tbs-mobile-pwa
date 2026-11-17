@@ -206,3 +206,54 @@ window.testTbsHmacV26 = async function () {
     return output;
   }
 };
+
+
+/**
+ * TBS MOBILE V2.7.2
+ * Test Firebase -> Worker -> Apps Script -> USERS.
+ *
+ * Chi kiem tra quyen, khong mo khoa giao dien.
+ * Khong thay doi du lieu Google Sheets.
+ */
+window.testTbsAccessV272 = async function () {
+  try {
+    const token = await getFirebaseIdTokenV2();
+
+    const response = await fetch(
+      `${TBS_API_URL}/auth/access`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    const result = await response.json();
+
+    const output = {
+      httpStatus: response.status,
+      success: result.success === true,
+      authenticated: result.authenticated === true,
+      authorized: result.authorized === true,
+      role: result.role || null,
+      reason: result.reason || null,
+      database: result.database || null,
+      error: result.error || null
+    };
+
+    console.log("TBS ACCESS V2.7.2:", output);
+
+    return output;
+
+  } catch (error) {
+    const output = {
+      success: false,
+      error: error.message
+    };
+
+    console.error("TBS ACCESS ERROR:", output);
+
+    return output;
+  }
+};
