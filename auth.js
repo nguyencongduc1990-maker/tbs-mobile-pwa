@@ -65,13 +65,35 @@ logoutBtn.addEventListener("click", async () => {
 
 let authCheckVersionV273 = 0;
 
+
 function lockAppV273() {
   document.body.classList.add("locked");
   document.body.dataset.role = "";
+
+  const roleStatus =
+    document.getElementById("userRoleStatus");
+
+  if (roleStatus) {
+    roleStatus.textContent =
+      "Chưa được cấp quyền";
+  }
 }
+
+
 
 function unlockAppV273(role) {
   document.body.dataset.role = role;
+
+  const roleStatus =
+    document.getElementById("userRoleStatus");
+
+  if (roleStatus) {
+    roleStatus.textContent =
+      role === "ADMIN"
+        ? "Đã cấp quyền ADMIN"
+        : "Đã cấp quyền USER";
+  }
+
   document.body.classList.remove("locked");
 }
 
