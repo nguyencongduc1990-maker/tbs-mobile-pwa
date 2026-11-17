@@ -54,87 +54,151 @@ logoutBtn.addEventListener("click", async () => {
   }
 });
 
-onAuthStateChanged(auth, user => {
-  // Chưa có backend phê duyệt: luôn khóa app.
+
+/**
+ * TBS MOBILE V2.7.3
+ * Automatic backend authorization.
+ *
+ * Default: LOCKED
+ * Unlock only after verified backend approval.
+ */
+
+let authCheckVersionV273 = 0;
+
+function lockAppV273() {
   document.body.classList.add("locked");
+  document.body.dataset.role = "";
+}
 
-  if (user) {
-    loginBtn.hidden = true;
-    userBox.hidden = false;
+function unlockAppV273(role) {
+  document.body.dataset.role = role;
+  document.body.classList.remove("locked");
+}
 
-    document.getElementById("userName")
-      .textContent = user.displayName || "";
+onAuthStateChanged(auth, async user => {
+  const checkVersion = ++authCheckVersionV273;
 
-    document.getElementById("userEmail")
-      .textContent = user.email || "";
+  // Always lock before checking permissions.
+  lockAppV273();
 
-    document.getElementById("userUid")
-      .textContent = user.uid;
-
-    status.textContent =
-      "Đã xác thực Google. Chưa được cấp quyền truy cập.";
-  } else {
+  if (!user) {
     loginBtn.hidden = false;
     loginBtn.disabled = false;
     loginBtn.textContent = "Đăng nhập bằng Google";
+
     userBox.hidden = true;
 
     status.textContent =
       "Vui lòng đăng nhập để xác minh danh tính.";
+
+    return;
   }
-}, error => {
+
+  loginBtn.hidden = true;
+  userBox.hidden = false;
+
+  document.getElementById("userName")
+    .textContent = user.displayName || "";
+
+  document.getElementById("userEmail")
+    .textContent = user.email || "";
+
+  document.getElementById("userUid")
+    .textContent = user.uid;
+
   status.textContent =
-    "Lỗi khởi tạo xác thực: " + error.code;
-});
+    "Đang kiểm tra quyền truy cập...";
 
+  try {
+    const token = await user.getIdToken();
 
-/**
- * Lay Firebase ID Token cua tai khoan da dang nhap.
- * Token se duoc Backend xac minh truoc khi cap quyen.
- */
-async function getFirebaseIdTokenV2() {
-  const user = auth.currentUser;
-
-  if (!user) {
-    throw new Error("NOT_AUTHENTICATED");
-  }
-
-  return await user.getIdToken();
-}
-
-
-const TBS_API_URL =
-  "https://tbs-mobile-api.nguyencongduc1990.workers.dev";
-
-async function verifyLoginWithBackendV2() {
-  const user = auth.currentUser;
-
-  if (!user) {
-    throw new Error("NOT_AUTHENTICATED");
-  }
-
-  const token = await getFirebaseIdTokenV2();
-
-  const response = await fetch(
-    `${TBS_API_URL}/auth/verify`,
-    {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`
+    const response = await fetch(
+      "https://tbs-mobile-api.nguyencongduc1990.workers.dev/auth/access",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        cache: "no-store"
       }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `AUTH_HTTP_${response.status}`
+      );
     }
-  );
 
-  const result = await response.json();
+    const result = await response.json();
 
-  if (!response.ok || !result.authenticated) {
-    throw new Error(
-      result.error || "AUTH_VERIFICATION_FAILED"
+    // Ignore responses from an outdated login.
+    if (
+      checkVersion !== authCheckVersionV273 ||
+      auth.currentUser?.uid !== user.uid
+    ) {
+      return;
+    }
+
+    if (
+      result.success === true &&
+      result.authenticated === true &&
+      result.authorized === true &&
+      result.database === "PROTECTED" &&
+      ["ADMIN", "USER"].includes(result.role)
+    ) {
+      unlockAppV273(result.role);
+
+      status.textContent =
+        result.role === "ADMIN"
+          ? "Đã xác thực. Quyền truy cập: ADMIN"
+          : "Đã xác thực. Quyền truy cập: USER";
+
+      console.log(
+        "TBS V2.7.3 AUTHORIZATION: APPROVED",
+        result.role
+      );
+
+      return;
+    }
+
+    lockAppV273();
+
+    status.textContent =
+      "Tài khoản chưa được cấp quyền truy cập.";
+
+    console.warn(
+      "TBS V2.7.3 AUTHORIZATION: DENIED",
+      result.reason || "ACCESS_DENIED"
+    );
+
+  } catch (error) {
+    if (
+      checkVersion !== authCheckVersionV273 ||
+      auth.currentUser?.uid !== user.uid
+    ) {
+      return;
+    }
+
+    lockAppV273();
+
+    status.textContent =
+      "Không thể xác minh quyền truy cập. Vui lòng thử lại.";
+
+    console.error(
+      "TBS V2.7.3 AUTHORIZATION ERROR:",
+      error.message
     );
   }
+}, error => {
+  ++authCheckVersionV273;
 
-  return result;
-}
+  lockAppV273();
+
+  status.textContent =
+    "Lỗi khởi tạo xác thực: " +
+    (error.code || "UNKNOWN");
+});
+
 
 // Chỉ dùng để kiểm tra trong giai đoạn triển khai.
 // Không lưu hoặc hiển thị ID Token.
