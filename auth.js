@@ -154,3 +154,55 @@ window.testTbsAuthenticationV2 = async function () {
     return { success: false, error: error.message };
   }
 };
+
+
+/**
+ * TBS MOBILE V2.6
+ * Test Cloudflare Worker -> Apps Script HMAC.
+ *
+ * Chi dung de kiem tra ket noi.
+ * Khong cap quyen va khong truy cap database.
+ */
+window.testTbsHmacV26 = async function () {
+  try {
+    const token = await getFirebaseIdTokenV2();
+
+    const response = await fetch(
+      `${TBS_API_URL}/backend/test`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    const result = await response.json();
+
+    const output = {
+      httpStatus: response.status,
+      success: result.success === true,
+      authenticated: result.authenticated === true,
+      authorized: result.authorized === true,
+      backendConnected: result.backendConnected === true,
+      backendVersion: result.backendVersion || null,
+      database: result.database || null,
+      error: result.error || null,
+      reason: result.reason || null
+    };
+
+    console.log("TBS HMAC V2.6 TEST:", output);
+
+    return output;
+
+  } catch (error) {
+    const output = {
+      success: false,
+      error: error.message
+    };
+
+    console.error("TBS HMAC V2.6 ERROR:", output);
+
+    return output;
+  }
+};
