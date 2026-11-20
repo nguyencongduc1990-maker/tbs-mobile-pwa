@@ -222,6 +222,60 @@ onAuthStateChanged(auth, async user => {
 });
 
 
+/**
+ * TBS MOBILE - API CONFIGURATION
+ * Firebase Token and Backend Verification
+ */
+
+const TBS_API_URL =
+  "https://tbs-mobile-api.nguyencongduc1990.workers.dev";
+
+/**
+ * Get Firebase ID Token.
+ */
+async function getFirebaseIdTokenV2() {
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error("NOT_AUTHENTICATED");
+  }
+
+  return await user.getIdToken();
+}
+
+/**
+ * Verify Firebase identity through Worker.
+ */
+async function verifyLoginWithBackendV2() {
+  const token = await getFirebaseIdTokenV2();
+
+  const response = await fetch(
+    `${TBS_API_URL}/auth/verify`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      cache: "no-store"
+    }
+  );
+
+  const result = await response.json();
+
+  if (
+    !response.ok ||
+    result.success !== true ||
+    result.authenticated !== true
+  ) {
+    throw new Error(
+      result.error || "AUTH_VERIFICATION_FAILED"
+    );
+  }
+
+  return result;
+}
+
+
 // Chỉ dùng để kiểm tra trong giai đoạn triển khai.
 // Không lưu hoặc hiển thị ID Token.
 window.testTbsAuthenticationV2 = async function () {
